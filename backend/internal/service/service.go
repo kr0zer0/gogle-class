@@ -1,13 +1,28 @@
 package service
 
-import "gogle-class/backend/internal/repository"
+import (
+	"context"
+	"gogle-class/backend/config"
+	"gogle-class/backend/internal/domain"
+	"gogle-class/backend/internal/repository"
+	"gogle-class/backend/pkg/auth"
+	"gogle-class/backend/pkg/hash"
+)
 
 // all service interfaces here...
 
-type Service struct {
-	// include all service interfaces
+type Auth interface {
+	Registration(ctx context.Context, user *domain.User) error
+	Login(ctx context.Context, email string, password string) (tokens Tokens, err error)
+	RefreshUserTokens(ctx context.Context, refreshToken string) (tokens Tokens, err error)
 }
 
-func NewService(repository *repository.Repository) *Service {
-	return &Service{}
+type Service struct {
+	Auth
+}
+
+func NewService(repository *repository.Repository, hasher hash.PasswordHasher, tokenManager auth.TokenManager, cfg *config.Config) *Service {
+	return &Service{
+		Auth: NewAuthService(repository.Auth, hasher, tokenManager, cfg),
+	}
 }

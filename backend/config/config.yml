@@ -1,0 +1,17 @@
+app:
+  port: ":8080"
+
+postgreSQL:
+  username: "postgres"
+  password: "qwerty"
+  host: "localhost"
+  port: "5432"
+  database: "postgres"
+  sslmode: "disable"
+
+auth:
+  salt: "qwerty"
+  jwt:
+    signingKey: "qwerty"
+    accessTokenTTL: 15m
+    refreshTokenTTL: 30m
