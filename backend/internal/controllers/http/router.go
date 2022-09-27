@@ -1,19 +1,19 @@
-package handler
+package http
 
 import (
 	"github.com/gin-gonic/gin"
-	"gogle-class/backend/internal/service"
+	"gogle-class/backend/internal/usecase"
 	"gogle-class/backend/pkg/auth"
 )
 
 type Handler struct {
-	services     *service.Service
+	useCases     *usecase.UseCases
 	tokenManager auth.TokenManager
 }
 
-func NewHandler(services *service.Service, tokenManager auth.TokenManager) *Handler {
+func NewHandler(services *usecase.UseCases, tokenManager auth.TokenManager) *Handler {
 	return &Handler{
-		services:     services,
+		useCases:     services,
 		tokenManager: tokenManager,
 	}
 }
@@ -26,11 +26,6 @@ func (h *Handler) InitRouter(port string) error {
 	auth.POST("/register", h.register)
 	auth.POST("/login", h.login)
 	auth.POST("/refresh", h.refresh)
-
-	//router.GET("/ping", h.authMiddleware, func(c *gin.Context) {
-	//	id, _ := c.Get("userID")
-	//	c.JSON(200, id)
-	//})
 
 	return router.Run(port)
 }

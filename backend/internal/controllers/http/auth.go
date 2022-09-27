@@ -1,14 +1,14 @@
-package handler
+package http
 
 import (
 	"github.com/gin-gonic/gin"
-	"gogle-class/backend/internal/command"
+	"gogle-class/backend/internal/controllers/http/dto"
 	"gogle-class/backend/internal/domain"
 	"net/http"
 )
 
 func (h *Handler) register(c *gin.Context) {
-	var input command.Registration
+	var input dto.Registration
 
 	err := c.BindJSON(&input)
 	if err != nil {
@@ -21,7 +21,7 @@ func (h *Handler) register(c *gin.Context) {
 		Password: input.Password,
 	}
 
-	err = h.services.Auth.Registration(c, &user)
+	err = h.useCases.RegisterUseCase.Register(c, &user)
 	if err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
@@ -30,7 +30,7 @@ func (h *Handler) register(c *gin.Context) {
 }
 
 func (h *Handler) login(c *gin.Context) {
-	var input command.Login
+	var input dto.Login
 
 	err := c.BindJSON(&input)
 	if err != nil {
@@ -38,7 +38,7 @@ func (h *Handler) login(c *gin.Context) {
 		return
 	}
 
-	tokens, err := h.services.Auth.Login(c, input.Email, input.Password)
+	tokens, err := h.useCases.LoginUseCase.Login(c, input.Email, input.Password)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -51,14 +51,14 @@ func (h *Handler) login(c *gin.Context) {
 }
 
 func (h *Handler) refresh(c *gin.Context) {
-	var input command.RefreshInput
+	var input dto.RefreshInput
 
 	err := c.BindJSON(&input)
 	if err != nil {
 		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
 	}
 
-	tokens, err := h.services.Auth.RefreshUserTokens(c, input.Token)
+	tokens, err := h.useCases.RefreshTokensUseCase.RefreshUserTokens(c, input.Token)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return

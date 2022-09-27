@@ -1,37 +1,54 @@
 package app
 
 import (
-	"fmt"
 	"gogle-class/backend/config"
-	"gogle-class/backend/internal/handler"
-	"gogle-class/backend/internal/repository"
-	"gogle-class/backend/internal/service"
+	"gogle-class/backend/internal/controllers/http"
+	"gogle-class/backend/internal/infrastructure/repository/postgres"
+	"gogle-class/backend/internal/usecase"
+	"gogle-class/backend/internal/usecase/usecase_contracts"
 	"gogle-class/backend/pkg/auth"
 	"gogle-class/backend/pkg/database"
 	"gogle-class/backend/pkg/hash"
+	"gorm.io/gorm"
 )
 
 func Run() error {
 	cfg := config.GetConfig()
 
-	fmt.Println(cfg.Auth.JWT.AccessTokenTTL)
+	hasher := hash.NewSHA256Hasher(cfg.Auth.Salt)
+	tokenManager := auth.NewManager(cfg.Auth.JWT.SigningKey)
 
 	db, err := database.NewPostgresDB(cfg)
 	if err != nil {
 		return err
 	}
 
-	repo := repository.NewRepository(db)
+	repositories := initRepositories(db)
+	useCases := initUseCases(repositories.AuthRepo, hasher, tokenManager, cfg)
+	controllers := http.NewHandler(useCases, tokenManager)
 
-	hasher := hash.NewSHA256Hasher(cfg.Auth.Salt)
-	tokenManager := auth.NewManager(cfg.Auth.JWT.SigningKey)
-	serv := service.NewService(repo, hasher, tokenManager, cfg)
-	hand := handler.NewHandler(serv, tokenManager)
-
-	err = hand.InitRouter(cfg.App.Port)
+	err = controllers.InitRouter(cfg.App.Port)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func initRepositories(db *gorm.DB) *usecase_contracts.Repositories {
+	authRepo := postgres.NewAuthRepo(db)
+
+	repositories := postgres.NewRepository(authRepo)
+
+	return repositories
+}
+
+func initUseCases(authRepo usecase_contracts.AuthRepo, hasher hash.PasswordHasher, tokenManager auth.TokenManager, cfg *config.Config) *usecase.UseCases {
+	registerUseCase := usecase.NewRegisterUseCase(authRepo, hasher)
+	loginUseCase := usecase.NewLoginUseCase(authRepo, tokenManager, hasher, cfg)
+	refreshTokens := usecase.NewRefreshTokensUseCase(authRepo, tokenManager, cfg)
+
+	useCases := usecase.NewUseCases(registerUseCase, loginUseCase, refreshTokens)
+
+	return useCases
 }
